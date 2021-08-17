@@ -1,4 +1,5 @@
 ﻿using Basket.API.Entities;
+using Basket.API.GrpcServices;
 using Basket.API.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -29,8 +30,17 @@ namespace Basket.API.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(ShoppingCart), (int)HttpStatusCode.OK)]
-        public async Task<ActionResult<ShoppingCart>> UpdateBasket([FromBody] ShoppingCart basket)
+        public async Task<ActionResult<ShoppingCart>> UpdateBasket([FromBody] ShoppingCart basket, [FromServices] DiscountGrpcService _dicountGrpc)
         {
+            foreach (var prod in basket.Items)
+            {
+                var discount = await _dicountGrpc.GetDiscount(prod.ProductName);
+                if (discount != null)
+                {
+                    prod.Price -= discount.Amount;
+                }
+            }
+
             return Ok(await _repository.UpdateBasket(basket));
         }
 
